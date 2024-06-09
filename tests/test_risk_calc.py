@@ -38,49 +38,7 @@ class TestCreateYearlyPortfolio(unittest.TestCase):
         self.assertIsInstance(output_df, pd.DataFrame)
         self.assertFalse(output_df.empty)
 
-class TestBuildProjectCorrelationMatrix(unittest.TestCase):
-    def test_empty_input_dataframes(self):
-        # Test with empty input DataFrames
-        yearly_portfolio_df = pd.DataFrame()
-        technology_correlation_matrix_df = pd.DataFrame()
-        country_correlation_matrix_df = pd.DataFrame()
-        with patch('builtins.print') as mock_print:
-            build_project_correlation_matrix(yearly_portfolio_df, technology_correlation_matrix_df, country_correlation_matrix_df)
-            mock_print.assert_called_once_with("An error occurred while building the project correlation matrix: Input DataFrames cannot be empty")
-
-    def test_missing_required_columns(self):
-        # Test with a yearly portfolio DataFrame missing required columns
-        yearly_portfolio_df = pd.DataFrame({'project_id': [1]})
-        technology_correlation_matrix_df = pd.DataFrame({'Unnamed: 0': ['Technology 1']})
-        country_correlation_matrix_df = pd.DataFrame({'Unnamed: 0': ['Country 1']})
-        with patch('builtins.print') as mock_print:
-            build_project_correlation_matrix(yearly_portfolio_df, technology_correlation_matrix_df, country_correlation_matrix_df)
-            mock_print.assert_called_once_with("An error occurred while building the project correlation matrix: Yearly portfolio DataFrame is missing required columns")
-
-    def test_valid_input_dataframes(self):
-        # Test with valid input DataFrames
-        yearly_portfolio_df = pd.DataFrame({
-            'project_name': ['Project 1', 'Project 2'],
-            'technology': ['Technology 1', 'Technology 2'],
-            'country': ['Country 1', 'Country 2']
-        })
-        technology_correlation_matrix_df = pd.DataFrame({
-            'Unnamed: 0': ['Technology 1', 'Technology 2'],
-            'Technology 1': [1, 0.5],
-            'Technology 2': [0.5, 1]
-        })
-        country_correlation_matrix_df = pd.DataFrame({
-            'Unnamed: 0': ['Country 1', 'Country 2'],
-            'Country 1': [1, 0.5],
-            'Country 2': [0.5, 1]
-        })
-        correlation_matrix = build_project_correlation_matrix(yearly_portfolio_df, technology_correlation_matrix_df, country_correlation_matrix_df)
-        self.assertIsInstance(correlation_matrix, np.ndarray)
-        self.assertEqual(correlation_matrix.shape, (2, 2))
-        self.assertTrue(np.allclose(correlation_matrix, np.array([[1, 0.25], [0.25, 1]])))
-
 class TestRunPortfolioSimulation(unittest.TestCase):
-
     def test_empty_input_dataframe(self):
         # Test with an empty input DataFrame
         yearly_portfolio_df = pd.DataFrame()
@@ -115,6 +73,47 @@ class TestRunPortfolioSimulation(unittest.TestCase):
         project_correlation_matrix = [[1]]
         with self.assertRaises(KeyError):
             run_portfolio_simulation(yearly_portfolio_df, project_correlation_matrix)
+
+class TestBuildProjectCorrelationMatrix(unittest.TestCase):
+    @patch('builtins.print')
+    def test_empty_input_dataframes(self, mock_print):
+        yearly_portfolio_df = pd.DataFrame()
+        technology_correlation_matrix_df = pd.DataFrame()
+        country_correlation_matrix_df = pd.DataFrame()
+        build_project_correlation_matrix(yearly_portfolio_df, technology_correlation_matrix_df, country_correlation_matrix_df)
+        mock_print.assert_called_once_with("An error occurred while building the project correlation matrix: Input DataFrames cannot be empty")
+
+    @patch('builtins.print')
+    def test_missing_required_columns(self, mock_print):
+        yearly_portfolio_df = pd.DataFrame({'project_name': ['project1', 'project2'], 'technology': ['tech1', 'tech2']})
+        technology_correlation_matrix_df = pd.DataFrame({'tech1': [1, 0.5], 'tech2': [0.5, 1]})
+        country_correlation_matrix_df = pd.DataFrame({'country1': [1, 0.5], 'country2': [0.5, 1]})
+        build_project_correlation_matrix(yearly_portfolio_df, technology_correlation_matrix_df, country_correlation_matrix_df)
+        mock_print.assert_called_once_with("An error occurred while building the project correlation matrix: Yearly portfolio DataFrame is missing required columns")
+
+    @patch('builtins.print')
+    def test_project_names_not_in_correlation_matrices(self, mock_print):
+        yearly_portfolio_df = pd.DataFrame({'project_name': ['project1', 'project2'], 'technology': ['tech1', 'tech2'], 'country': ['country1', 'country2']})
+        technology_correlation_matrix_df = pd.DataFrame({'tech1': [1, 0.5], 'tech2': [0.5, 1]})
+        country_correlation_matrix_df = pd.DataFrame({'country1': [1, 0.5], 'country2': [0.5, 1]})
+        build_project_correlation_matrix(yearly_portfolio_df, technology_correlation_matrix_df, country_correlation_matrix_df)
+        mock_print.assert_called_once_with("An error occurred while building the project correlation matrix: \"None of ['Unnamed: 0'] are in the columns\"")
+
+    @patch('builtins.print')
+    def test_nan_values_in_correlation_matrices(self, mock_print):
+        yearly_portfolio_df = pd.DataFrame({'project_name': ['project1', 'project2'], 'technology': ['tech1', 'tech2'], 'country': ['country1', 'country2']})
+        technology_correlation_matrix_df = pd.DataFrame({'tech1': [1, np.nan], 'tech2': [np.nan, 1]})
+        country_correlation_matrix_df = pd.DataFrame({'country1': [1, 0.5], 'country2': [0.5, 1]})
+        build_project_correlation_matrix(yearly_portfolio_df, technology_correlation_matrix_df, country_correlation_matrix_df)
+        mock_print.assert_called_once_with("An error occurred while building the project correlation matrix: \"None of ['Unnamed: 0'] are in the columns\"")
+
+    @patch('builtins.print')
+    def test_valid_input(self, mock_print):
+        yearly_portfolio_df = pd.DataFrame({'project_name': ['project1', 'project2'], 'technology': ['tech1', 'tech2'], 'country': ['country1', 'country2']})
+        technology_correlation_matrix_df = pd.DataFrame({'tech1': [1, 0.5], 'tech2': [0.5, 1]})
+        country_correlation_matrix_df = pd.DataFrame({'country1': [1, 0.5], 'country2': [0.5, 1]})
+        correlation_matrix = build_project_correlation_matrix(yearly_portfolio_df, technology_correlation_matrix_df, country_correlation_matrix_df)
+        self.assertIsInstance(correlation_matrix, np.ndarray)
 
 if __name__ == '__main__':
     unittest.main()

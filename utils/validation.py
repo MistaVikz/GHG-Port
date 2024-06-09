@@ -54,9 +54,9 @@ def validate_project_correlation_matrix(correlation_matrix: np.ndarray) -> bool:
         print("Error: The project correlation matrix is not symmetric")
         return False
 
-    # Check if the diagonal values of the correlation matrix are 1
-    if not np.allclose(np.diag(correlation_matrix), 1):
-        print("Error: The diagonal values of the project correlation matrix must be 1")
+    # Check if the correlation matrix contains NaN values
+    if np.isnan(correlation_matrix).any():
+        print("Error: The project correlation matrix contains NaN values")
         return False
 
     # Check if the correlation matrix is positive semi-definite

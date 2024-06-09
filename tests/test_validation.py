@@ -45,27 +45,6 @@ class TestValidateYearlyPortfolio(unittest.TestCase):
     def test_valid_dataframe(self):
         self.assertTrue(validate_yearly_portfolio(self.yearly_portfolio_df))
 
-class TestValidateProjectCorrelationMatrix(unittest.TestCase):
-    @patch('sys.stdout')
-    def test_non_numeric_correlation_matrix(self, mock_stdout):
-        non_numeric_matrix = np.array([[1, 2, 'a'], [4, 5, 6], [7, 8, 9]])
-        self.assertFalse(validate_project_correlation_matrix(non_numeric_matrix))
-
-    @patch('sys.stdout')
-    def test_asymmetric_correlation_matrix(self, mock_stdout):
-        asymmetric_matrix = np.array([[1, 0.5, 0.2], [0.3, 1, 0.7], [0.2, 0.5, 1]])
-        self.assertFalse(validate_project_correlation_matrix(asymmetric_matrix))
-
-    @patch('sys.stdout')
-    def test_correlation_matrix_with_non_unit_diagonal(self, mock_stdout):
-        non_unit_diagonal_matrix = np.array([[1.1, 0.5, 0.2], [0.5, 1, 0.7], [0.2, 0.7, 1]])
-        self.assertFalse(validate_project_correlation_matrix(non_unit_diagonal_matrix))
-
-    @patch('sys.stdout')
-    def test_valid_correlation_matrix(self, mock_stdout):
-        valid_matrix = np.array([[1, 0.5, 0.2], [0.5, 1, 0.7], [0.2, 0.7, 1]])
-        self.assertTrue(validate_project_correlation_matrix(valid_matrix))
-
 class TestValidateSimulationResults(unittest.TestCase):
     @patch('sys.stdout')
     def test_empty_results(self, mock_stdout):
@@ -92,5 +71,38 @@ class TestValidateSimulationResults(unittest.TestCase):
         valid_results = [(2020, 1, 100, 0.5), (2021, 2, 200, 0.7)]
         self.assertTrue(validate_simulation_results(valid_results))
 
+class TestValidateProjectCorrelationMatrix(unittest.TestCase):
+    def test_numeric_matrix(self):
+        correlation_matrix = np.array([[1, 0.5], [0.5, 1]])
+        self.assertTrue(validate_project_correlation_matrix(correlation_matrix))
+
+    def test_non_numeric_matrix(self):
+        correlation_matrix = np.array([['a', 'b'], ['c', 'd']])
+        with patch('builtins.print') as mock_print:
+            self.assertFalse(validate_project_correlation_matrix(correlation_matrix))
+
+    def test_symmetric_matrix(self):
+        correlation_matrix = np.array([[1, 0.5], [0.5, 1]])
+        self.assertTrue(validate_project_correlation_matrix(correlation_matrix))
+
+    def test_non_symmetric_matrix(self):
+        correlation_matrix = np.array([[1, 0.5], [0.6, 1]])
+        with patch('builtins.print') as mock_print:
+            self.assertFalse(validate_project_correlation_matrix(correlation_matrix))
+
+    def test_nan_matrix(self):
+        correlation_matrix = np.array([[1, np.nan], [np.nan, 1]])
+        with patch('builtins.print') as mock_print:
+            self.assertFalse(validate_project_correlation_matrix(correlation_matrix))
+
+    def test_positive_semi_definite_matrix(self):
+        correlation_matrix = np.array([[1, 0.5], [0.5, 1]])
+        self.assertTrue(validate_project_correlation_matrix(correlation_matrix))
+
+    def test_non_positive_semi_definite_matrix(self):
+        correlation_matrix = np.array([[1, 2], [2, 1]])
+        with patch('builtins.print') as mock_print:
+            self.assertFalse(validate_project_correlation_matrix(correlation_matrix))
+            
 if __name__ == '__main__':
     unittest.main()

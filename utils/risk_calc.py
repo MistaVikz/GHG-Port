@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from scipy.spatial.distance import pdist, squareform
 
 def create_yearly_portfolio(portfolio_df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -143,15 +144,26 @@ def build_project_correlation_matrix(yearly_portfolio_df: pd.DataFrame, technolo
         # Explicitly convert the correlation matrix to a float64 array
         correlation_matrix_array = correlation_matrix_array.astype(np.float64)
 
-        # Make the correlation matrix positive semi-definite
+        # Remove the negative eigenvalues
         eigenvalues, eigenvectors = np.linalg.eig(correlation_matrix_array)
         eigenvalues[eigenvalues < 0] = 0
-        correlation_matrix_array = eigenvectors @ np.diag(eigenvalues) @ eigenvectors.T
 
-        # Set the diagonal values to 1
-        np.fill_diagonal(correlation_matrix_array, 1)
+        # Re-orthogonalize the eigenvectors using the Gram-Schmidt process
+        orthogonal_eigenvectors = np.zeros_like(eigenvectors)
+        for i, v in enumerate(eigenvectors.T):
+            u = v.copy()
+            for j in range(i):
+                u -= np.dot(orthogonal_eigenvectors[:, j], v) * orthogonal_eigenvectors[:, j]
+            orthogonal_eigenvectors[:, i] = u / np.linalg.norm(u)
+
+        # Reconstruct the correlation matrix
+        correlation_matrix_array = orthogonal_eigenvectors @ np.diag(eigenvalues) @ orthogonal_eigenvectors.T
+
+        # Add a small value to the diagonal of the correlation matrix
+        correlation_matrix_array += np.eye(correlation_matrix_array.shape[0]) * 1e-8
 
         return correlation_matrix_array
+
     except Exception as e:
         print(f"An error occurred while building the project correlation matrix: {e}")
         return np.array([])
