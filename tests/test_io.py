@@ -84,15 +84,16 @@ class TestPrintAndExportSimulationResults(unittest.TestCase):
     def test_print_and_export_simulation_results(self, mock_excel_writer, mock_to_excel, mock_print):
         # Mock the results
         results = [(2022, 0.5, 50.0, 10.0, 0.5), (2023, 0.6, 60.0, 12.0, 0.6)]
+        yearly_portfolio_df = pd.DataFrame({'Year': [2022, 2023], 'Project': ['Project A', 'Project B']})
 
         # Call the function
-        print_and_export_simulation_results(results, Path('output_dir'), '2022-01-01 12:00:00')
+        print_and_export_simulation_results(results, Path('output_dir'), '2022-01-01 12:00:00', yearly_portfolio_df)
 
         # Check if the ExcelWriter was called correctly
         mock_excel_writer.assert_called_once_with(Path('output_dir') / 'Portfolio_Simulation_Results.xlsx', engine='xlsxwriter')
 
-        # Check if the to_excel method was called correctly
-        mock_to_excel.assert_called_once()
+        # Check if the to_excel method was called twice (once for each worksheet)
+        self.assertEqual(mock_to_excel.call_count, 2)
 
     @patch('builtins.print')
     @patch('pandas.DataFrame.to_excel')
@@ -100,15 +101,16 @@ class TestPrintAndExportSimulationResults(unittest.TestCase):
     def test_print_and_export_simulation_results_empty_results(self, mock_excel_writer, mock_to_excel, mock_print):
         # Mock the results
         results = []
+        yearly_portfolio_df = pd.DataFrame({'Year': [], 'Project': []})
 
         # Call the function
-        print_and_export_simulation_results(results, Path('output_dir'), '2022-01-01 12:00:00')
+        print_and_export_simulation_results(results, Path('output_dir'), '2022-01-01 12:00:00', yearly_portfolio_df)
 
         # Check if the ExcelWriter was called correctly
         mock_excel_writer.assert_called_once_with(Path('output_dir') / 'Portfolio_Simulation_Results.xlsx', engine='xlsxwriter')
 
-        # Check if the to_excel method was called correctly
-        mock_to_excel.assert_called_once()
+        # Check if the to_excel method was called twice (once for each worksheet)
+        self.assertEqual(mock_to_excel.call_count, 2)
 
 class TestExportModelConfiguration(unittest.TestCase): 
     @patch('pandas.DataFrame.to_excel')

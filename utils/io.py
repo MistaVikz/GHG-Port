@@ -59,7 +59,7 @@ def load_excel_data(file_path: Path) -> tuple[pd.DataFrame, pd.DataFrame, pd.Dat
     
     return tuple(dataframes.values())
 
-def print_and_export_simulation_results(results: list[tuple[int, float, float, float, float]], output_dir: Path, simulation_date: str) -> None:
+def print_and_export_simulation_results(results: list[tuple[int, float, float, float, float]], output_dir: Path, simulation_date: str, yearly_portfolio_df: pd.DataFrame) -> None:
     """
     Prints and exports the results of a portfolio simulation.
 
@@ -137,6 +137,14 @@ def print_and_export_simulation_results(results: list[tuple[int, float, float, f
                 worksheet.write(row + 3, 0, results_df.iloc[row, 0], bold)  
 
             worksheet.write(len(results_df) + 2, 0, results_df.iloc[-1, 0], bold)
+
+            # Export the yearly portfolio to a separate worksheet
+            yearly_portfolio_df.to_excel(writer, sheet_name="Yearly Portfolio", index=False)
+            worksheet = writer.book.worksheets()[1]
+
+            for col in range(len(yearly_portfolio_df.columns)):
+                worksheet.set_column(col, col, 22)
+
     except Exception as e:
         print(f"An error occurred while writing to the Excel file: {e}")
 

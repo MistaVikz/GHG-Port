@@ -44,7 +44,7 @@ def main(file_path: Path) -> None:
         output_dir.mkdir(parents=True, exist_ok=True)
 
         # Export the results and configuration to excel
-        print_and_export_simulation_results(results, output_dir, simulation_date)
+        print_and_export_simulation_results(results, output_dir, simulation_date, yearly_portfolio_df)
         export_model_configuration(default_rates_df, recovery_potential_df, model_config_df, output_dir)
 
     except Exception as e:
