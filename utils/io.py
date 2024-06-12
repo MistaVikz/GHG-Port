@@ -1,8 +1,9 @@
 import pandas as pd
+import logging
 from pathlib import Path
 from tabulate import tabulate
 
-def load_excel_data(file_path: Path) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+def load_excel_data(file_path: Path) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
     Load Excel data from a file, perform data preparation, and return a tuple of DataFrames.
 
@@ -14,44 +15,44 @@ def load_excel_data(file_path: Path) -> tuple[pd.DataFrame, pd.DataFrame, pd.Dat
         file_path (Path): The path to the Excel file.
 
     Returns:
-        tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]: 
+        tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]: 
             A tuple containing the following DataFrames:
                 1. Portfolio
                 2. Technology Correlation Matrix
                 3. Country Correlation Matrix
-                4. Default Rates
-                5. Recovery Potential
-                6. Model Config
 
     Raises:
-        FileNotFoundError: If the file at file_path does not exist.
+        FileExistsError: If the file at file_path does not exist.
         ValueError: If the Excel file is missing required sheets or if any of the DataFrames are empty.
     """
     
+    # Define the required sheets
+    required_sheets = ['Portfolio', 'Technology Correlation Matrix', 'Country Correlation Matrix']
+    
     # Check if the file exists
     if not file_path.exists():
-        raise FileNotFoundError(f"The file {file_path} does not exist")
+        logging.error(f"The file {file_path} does not exist")
+        raise FileExistsError(f"The file {file_path} does not exist")
     
     sheets = pd.read_excel(file_path, sheet_name=None)
     
     # Check if all required sheets exist
-    required_sheets = ['Portfolio', 'Technology Correlation Matrix', 'Country Correlation Matrix', 'Default Rates', 'Recovery Potential', 'Model Config']
     if not all(sheet in sheets for sheet in required_sheets):
-        raise ValueError("The Excel file is missing required sheets")
+        missing_sheets = [sheet for sheet in required_sheets if sheet not in sheets]
+        logging.error(f"The Excel file is missing required sheets: {missing_sheets}")
+        raise ValueError(f"The Excel file is missing required sheets: {missing_sheets}")
     
     # Load DataFrames
     dataframes = {
         'portfolio': sheets['Portfolio'],
         'technology_correlation_matrix': sheets['Technology Correlation Matrix'],
         'country_correlation_matrix': sheets['Country Correlation Matrix'],
-        'default_rates': sheets['Default Rates'],
-        'recovery_potential': sheets['Recovery Potential'],
-        'model_config': sheets['Model Config'],
     }
     
     # Check if DataFrames are not empty
     for name, df in dataframes.items():
         if df.empty:
+            logging.error(f"The '{name}' DataFrame is empty")
             raise ValueError(f"The '{name}' DataFrame is empty")
     
     # Drop columns with 'risk_bucket' in their name from the 'Portfolio' DataFrame
@@ -146,32 +147,5 @@ def print_and_export_simulation_results(results: list[tuple[int, float, float, f
                 worksheet.set_column(col, col, 22)
 
     except Exception as e:
-        print(f"An error occurred while writing to the Excel file: {e}")
-
-def export_model_configuration(default_rates_df: pd.DataFrame, recovery_potential_df: pd.DataFrame, model_config_df: pd.DataFrame, output_dir: Path) -> None:
-    """
-    Exports the model configuration dataframes to Excel.
-
-    Args:
-    default_rates_df (pd.DataFrame): The default rates dataframe.
-    recovery_potential_df (pd.DataFrame): The recovery potential dataframe.
-    model_config_df (pd.DataFrame): The model configuration dataframe.
-    output_dir (Path): The output directory.
-
-    Returns:
-    None
-    """
-    
-    try:
-        with pd.ExcelWriter(output_dir / 'Model_Configuration.xlsx') as writer:
-            model_config_df.to_excel(writer, sheet_name='Model Config', index=False)
-            default_rates_df.to_excel(writer, sheet_name='Default Rates', index=False)
-            recovery_potential_df.to_excel(writer, sheet_name='Recovery Potential', index=False)
-            
-            # Adjust column widths
-            for worksheet in writer.sheets.values():
-                worksheet.set_column(0, 0, 23)
-                if worksheet.get_name() == 'Model Config':
-                    worksheet.set_column(1, model_config_df.shape[1], 23)
-    except Exception as e:
+        logging.error(f"An error occurred while writing to the Excel file: {e}")
         print(f"An error occurred while writing to the Excel file: {e}")

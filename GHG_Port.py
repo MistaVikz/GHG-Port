@@ -6,6 +6,9 @@ from utils.risk_calc import *
 from utils.validation import *
 import logging
 
+# Set up logging to a file
+logging.basicConfig(filename='error.log', level=logging.ERROR, format='%(asctime)s %(levelname)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+
 def main(file_path: Path) -> None:
     """
     Creates a yearly portfolio and correlation matrix.
@@ -16,11 +19,10 @@ def main(file_path: Path) -> None:
     Returns:
     None
     """
-    logging.basicConfig(level=logging.ERROR)
 
     try:
         # Load the Excel data
-        portfolio_df, technology_correlation_matrix_df, country_correlation_matrix_df, default_rates_df, recovery_potential_df, model_config_df = load_excel_data(file_path)
+        portfolio_df, technology_correlation_matrix_df, country_correlation_matrix_df = load_excel_data(file_path)
 
         # Build the yearly portfolio
         yearly_portfolio_df = create_yearly_portfolio(portfolio_df)
@@ -43,13 +45,11 @@ def main(file_path: Path) -> None:
         output_dir = Path('output') / timestamp
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        # Export the results and configuration to excel
+        # Export the results to excel
         print_and_export_simulation_results(results, output_dir, simulation_date, yearly_portfolio_df)
-        export_model_configuration(default_rates_df, recovery_potential_df, model_config_df, output_dir)
 
     except Exception as e:
         logging.error("An error occurred", exc_info=e)
-        raise
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

@@ -24,15 +24,11 @@ By default, the program will look for an input file named `GHG_Portfolio_Data.xl
 Note that the input file must be located in the `data` directory. The program will generate output files in a timestamped directory within the `output` directory.
 
 ### Input File Format
-
 The input file for the GHG_Port project is an Excel file with the following worksheets:
 
 - Portfolio
 - Technology Correlation Matrix
 - Country Correlation Matrix
-- Default Rates
-- Recovery Potential
-- Model Config
 
 #### Portfolio
 
@@ -84,21 +80,6 @@ The Default Rates table should have the following structure:
 
 The Recovery Potential table should have a similar structure, with the same investment grades and years.
 
-#### Model Config
-
-The Model Config worksheet contains information about the model used to screen the projects in the portfolio. The columns in this worksheet are:
-
-- model_id: A unique identifier for the model
-- model_name: The name of the model
-- num_buckets: The number of risk buckets used in the model
-- num_factors: The number of factors used in the model
-- last_saved: The date and time the model was last saved
-- risk_bucket_X_name: The name of the Xth risk bucket (where X is a number between 1 and num_buckets)
-- risk_bucket_X_factor_Y_name: The name of the Yth factor in the Xth risk bucket (where X is a number between 1 and num_buckets, and Y is a number between 1 and num_factors)
-- risk_bucket_X_factor_Y_rules: The rules used to evaluate the Yth factor in the Xth risk bucket (where X is a number between 1 and num_buckets, and Y is a number between 1 and num_factors)
-
-The number of columns for risk bucket names, factor names, and factor rules will depend on the values of num_buckets and num_factors. For example, if num_buckets is 5 and num_factors is 5, there will be columns for risk_bucket_1_name through risk_bucket_5_name, and for risk_bucket_1_factor_1_name through risk_bucket_5_factor_5_name, and so on.
-
 ### Simulation Process
 
 1. `create_yearly_portfolio` is responsible for transforming the input portfolio DataFrame into a yearly portfolio DataFrame. This involves several steps:
@@ -126,6 +107,15 @@ The number of columns for risk bucket names, factor names, and factor rules will
 ### Known Issues
 
 The project correlation matrix is constructed from manually assigned technology and country correlations, which can lead to issues with positive semi-definiteness. If the correlation matrix is not positive semi-definite, the simulation will fail. This is a known limitation of the current implementation, and users should be aware of this potential issue when using the tool.
+
+### Output
+The project produces one Excel file as output: Portfolio_Simulation_Results.xlsx. This file is stored in a timestamped directory within the /output subdirectory. The directory is created at runtime and its name is in the format YYYYMMDD_HHMMSS, where YYYYMMDD is the date and HHMMSS is the time.
+
+Portfolio Simulation Results
+The Portfolio_Simulation_Results.xlsx file contains the results of the portfolio simulation. It has two worksheets:
+
+- Simulation Results: This worksheet contains the results of the simulation, including the year, offered volume, portfolio delivery, standard deviation, and delivery rate.
+- Yearly Portfolio: This worksheet contains the projects that were used in the simulation, including the year and project name.
 
 ### Generating a Random Portfolio
 

@@ -27,7 +27,7 @@ def parse_args() -> argparse.Namespace:
 
     return args
 
-def load_data(file_path: str) -> tuple:
+def load_data(file_path: str) -> pd.DataFrame:
     """
     Load data from an Excel file.
 
@@ -35,26 +35,23 @@ def load_data(file_path: str) -> tuple:
         file_path: The path to the Excel file.
 
     Returns:
-        A tuple of four dataframes. The first dataframe is the project data, the second dataframe is the default rates, the third dataframe is the recovery potential, and the fourth dataframe is the model configuration.
+        A dataframe containing the project data.
     """
     try:
         project_data = pd.read_excel(file_path, sheet_name='Project Data')
-        default_rates = pd.read_excel(file_path, sheet_name='Default Rates')
-        recovery_potential = pd.read_excel(file_path, sheet_name='Recovery Potential')
-        model_config = pd.read_excel(file_path, sheet_name='Model Config')
-        return project_data, default_rates, recovery_potential, model_config
+        return project_data
     except FileNotFoundError:
         print(f"Error: The file '{file_path}' was not found.")
-        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+        return pd.DataFrame()
     except pd.errors.EmptyDataError:
         print(f"Error: The file '{file_path}' is empty.")
-        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+        return pd.DataFrame()
     except pd.errors.ParserError as e:
         print(f"Error parsing the file: {e}")
-        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+        return pd.DataFrame()
     except Exception as e:
         print(f"An error occurred: {e}")
-        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+        return pd.DataFrame()
 
 def generate_correlation_matrices(portfolio: pd.DataFrame) -> tuple:
     """
@@ -91,20 +88,17 @@ def generate_correlation_matrices(portfolio: pd.DataFrame) -> tuple:
         print(f"An error occurred: {e}")
         return pd.DataFrame(), pd.DataFrame()
 
-def export_output(portfolio: pd.DataFrame, technology_correlation_matrix: pd.DataFrame, country_correlation_matrix: pd.DataFrame, default_rates: pd.DataFrame, recovery_potential: pd.DataFrame, model_config: pd.DataFrame, export_csv: bool) -> None:
+def export_output(portfolio: pd.DataFrame, technology_correlation_matrix: pd.DataFrame, country_correlation_matrix: pd.DataFrame, export_csv: bool) -> None:
     """
     Export the portfolio data to a file.
 
     If export_csv is True, the portfolio is exported to a CSV file named 'GHG_Portfolio.csv' in the 'data' directory.
-    Otherwise, the portfolio, technology correlation matrix, country correlation matrix, default rates, recovery potential, and model config are exported to an Excel file named 'GHG_Portfolio_Data.xlsx' in the 'data' directory.
+    Otherwise, the portfolio, technology correlation matrix, and country correlation matrix are exported to an Excel file named 'GHG_Portfolio_Data.xlsx' in the 'data' directory.
 
     Args:
         portfolio: A dataframe containing the portfolio data.
         technology_correlation_matrix: A dataframe containing the technology correlation matrix.
         country_correlation_matrix: A dataframe containing the country correlation matrix.
-        default_rates: A dataframe containing the default rates.
-        recovery_potential: A dataframe containing the recovery potential.
-        model_config: A dataframe containing the model configuration.
         export_csv: A boolean indicating whether to export the portfolio to a CSV file.
     """
 
@@ -120,9 +114,6 @@ def export_output(portfolio: pd.DataFrame, technology_correlation_matrix: pd.Dat
                 'Portfolio': portfolio,
                 'Technology Correlation Matrix': technology_correlation_matrix,
                 'Country Correlation Matrix': country_correlation_matrix,
-                'Default Rates': default_rates,
-                'Recovery Potential': recovery_potential,
-                'Model Config': model_config,
             }
 
             file_path = data_dir / 'GHG_Portfolio_Data.xlsx'
@@ -136,7 +127,7 @@ def export_output(portfolio: pd.DataFrame, technology_correlation_matrix: pd.Dat
         print(f"Error finding file: {e}")
     except Exception as e:
         print(f"An error occurred: {e}")
-        
+
 def main() -> None:
     """
     The main function that calls all the other functions.
@@ -146,7 +137,7 @@ def main() -> None:
 
         script_dir = pathlib.Path(__file__).parent
         file_path = script_dir / args.i
-        project_data, default_rates, recovery_potential, model_config = load_data(file_path)
+        project_data = load_data(file_path)
 
         # Create a random portfolio of projects
         portfolio = project_data.sample(n=args.s, replace=False)
@@ -155,7 +146,7 @@ def main() -> None:
         technology_correlation_matrix, country_correlation_matrix = generate_correlation_matrices(portfolio)
 
         # Export the portfolio and correlation matrices to a file
-        export_output(portfolio, technology_correlation_matrix, country_correlation_matrix, default_rates, recovery_potential, model_config, args.csv)
+        export_output(portfolio, technology_correlation_matrix, country_correlation_matrix, args.csv)
 
         print(f"Generated a portfolio of {args.s} projects with technology and country correlation matrices. Exported to {'CSV' if args.csv else 'Excel'}.")
 

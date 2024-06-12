@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from scipy.spatial.distance import pdist, squareform
+import logging
 
 def create_yearly_portfolio(portfolio_df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -62,9 +62,14 @@ def create_yearly_portfolio(portfolio_df: pd.DataFrame) -> pd.DataFrame:
         yearly_portfolio_df.columns = [col[0] if isinstance(col, tuple) and col[1] == '' else '_'.join(str(x) for x in col).strip('_') for col in yearly_portfolio_df.columns]
         
         return yearly_portfolio_df
+    except ValueError as e:
+        logging.error(f"Invalid input: {e}")
+        logging.error(f"Input DataFrame: {portfolio_df.head()}")
+        return None
     except Exception as e:
-        print(f"An error occurred while creating the yearly portfolio DataFrame: {e}")
-        return pd.DataFrame()
+        logging.error(f"An unexpected error occurred: {e}")
+        logging.error(f"Input DataFrame: {portfolio_df.head()}")
+        raise
 
 def build_project_correlation_matrix(yearly_portfolio_df: pd.DataFrame, technology_correlation_matrix_df: pd.DataFrame, country_correlation_matrix_df: pd.DataFrame) -> np.ndarray:
     """
@@ -164,65 +169,85 @@ def build_project_correlation_matrix(yearly_portfolio_df: pd.DataFrame, technolo
 
         return correlation_matrix_array
 
+    except ValueError as e:
+        logging.error(f"Invalid input: {e}")
+        logging.error(f"Yearly portfolio DataFrame: {yearly_portfolio_df.head()}")
+        logging.error(f"Technology correlation matrix DataFrame: {technology_correlation_matrix_df.head()}")
+        logging.error(f"Country correlation matrix DataFrame: {country_correlation_matrix_df.head()}")
+        return None
     except Exception as e:
-        print(f"An error occurred while building the project correlation matrix: {e}")
-        return np.array([])
+        logging.error(f"An unexpected error occurred: {e}")
+        logging.error(f"Yearly portfolio DataFrame: {yearly_portfolio_df.head()}")
+        logging.error(f"Technology correlation matrix DataFrame: {technology_correlation_matrix_df.head()}")
+        logging.error(f"Country correlation matrix DataFrame: {country_correlation_matrix_df.head()}")
+        raise
 
 def run_portfolio_simulation(yearly_portfolio_df: pd.DataFrame, project_correlation_matrix: list, num_simulations: int = 10000) -> list:
-    """
-    This function runs a Monte Carlo simulation to estimate the overall portfolio delivery and delivery rate for all years in the portfolio.
+    try:
+        # Check if the input DataFrame is empty
+        if yearly_portfolio_df.empty:
+            raise ValueError("Input DataFrame cannot be empty")
 
-    Parameters:
-    yearly_portfolio_df (pd.DataFrame): A pandas DataFrame containing the yearly portfolio data.
-    project_correlation_matrix (list): A list representing the correlation matrix for the projects.
-    num_simulations (int): The number of simulations to run. Defaults to 10000.
+        if not isinstance(project_correlation_matrix, (list, np.ndarray)):
+            raise ValueError("Project correlation matrix must be a list of lists or a numpy array")
+    
+        # Check if the number of simulations is a positive integer
+        if not isinstance(num_simulations, int) or num_simulations <= 0:
+            raise ValueError("Number of simulations must be a positive integer")
 
-    Returns:
-    list: A list of tuples, each containing the year, overall standard deviation, overall portfolio delivery, and overall delivery rate.
-    """
+        results = []
+        project_end_years = yearly_portfolio_df['start_year'] + yearly_portfolio_df['contract_duration'] - 1
+        last_year = project_end_years.max()
+        years = range(yearly_portfolio_df['start_year'].min(), last_year + 1)
 
-    results = []
-    project_end_years = yearly_portfolio_df['start_year'] + yearly_portfolio_df['contract_duration'] - 1
-    last_year = project_end_years.max()
-    years = range(yearly_portfolio_df['start_year'].min(), last_year + 1)
+        for year in years:
+            # Filter the dataframe to include only projects that are active in the current year
+            active_projects_df = yearly_portfolio_df[(yearly_portfolio_df['start_year'] <= year) & (yearly_portfolio_df['start_year'] + yearly_portfolio_df['contract_duration'] > year)]
 
-    for year in years:
-        # Filter the dataframe to include only projects that are active in the current year
-        active_projects_df = yearly_portfolio_df[(yearly_portfolio_df['start_year'] <= year) & (yearly_portfolio_df['start_year'] + yearly_portfolio_df['contract_duration'] > year)]
+            if not active_projects_df.empty:
+                # Get the delivery volumes, standard deviations and offered volumes for the current year
+                delivery_volume_means = active_projects_df[f'delivery_volume_{year}'].fillna(0).values
+                standard_deviations = active_projects_df[f'standard_deviation_{year}'].fillna(0).values
+                offered_volumes = active_projects_df[f'offered_volume_{year}'].fillna(0).values
 
-        if not active_projects_df.empty:
-            # Get the delivery volumes, standard deviations and offered volumes for the current year
-            delivery_volume_means = active_projects_df[f'delivery_volume_{year}'].fillna(0).values
-            standard_deviations = active_projects_df[f'standard_deviation_{year}'].fillna(0).values
-            offered_volumes = active_projects_df[f'offered_volume_{year}'].fillna(0).values
+                # Filter the project correlation matrix to only include active projects
+                active_project_indices = yearly_portfolio_df.index.isin(active_projects_df.index)
+                active_project_correlation_matrix = np.array(project_correlation_matrix)[active_project_indices, :][:, active_project_indices]
 
-            # Filter the project correlation matrix to only include active projects
-            active_project_indices = yearly_portfolio_df.index.isin(active_projects_df.index)
-            active_project_correlation_matrix = np.array(project_correlation_matrix)[active_project_indices, :][:, active_project_indices]
+                # Calculate the Cholesky decomposition of the correlation matrix
+                cholesky_factors = np.linalg.cholesky(active_project_correlation_matrix)
 
-            # Calculate the Cholesky decomposition of the correlation matrix
-            cholesky_factors = np.linalg.cholesky(active_project_correlation_matrix)
+                # Generate random samples from a multivariate normal distribution
+                samples = delivery_volume_means + np.dot(np.random.normal(size=(num_simulations, len(delivery_volume_means))), np.dot(np.diag(standard_deviations), cholesky_factors))
 
-            # Generate random samples from a multivariate normal distribution
-            samples = delivery_volume_means + np.dot(np.random.normal(size=(num_simulations, len(delivery_volume_means))), np.dot(np.diag(standard_deviations), cholesky_factors))
+                # Calculate the total portfolio outcome by summing the samples across all projects
+                overall_portfolio = np.sum(samples, axis=1)
 
-            # Calculate the total portfolio outcome by summing the samples across all projects
-            overall_portfolio = np.sum(samples, axis=1)
+                # Calculate the standard deviation of the total portfolio outcomes
+                std_dev_overall_portfolio = np.std(overall_portfolio)
 
-            # Calculate the standard deviation of the total portfolio outcomes
-            std_dev_overall_portfolio = np.std(overall_portfolio)
+                # Calculate the overall offered volume
+                overall_offered_volume = np.sum(offered_volumes)
 
-            # Calculate the overall offered volume
-            overall_offered_volume = np.sum(offered_volumes)
+                # Calculate the overall portfolio delivery
+                # We subtract 2 times the standard deviation from the overall offered volume to get the overall portfolio delivery
+                overall_portfolio_delivery = overall_offered_volume - (2 * std_dev_overall_portfolio)
 
-            # Calculate the overall portfolio delivery
-            # We subtract 2 times the standard deviation from the overall offered volume to get the overall portfolio delivery
-            overall_portfolio_delivery = overall_offered_volume - (2 * std_dev_overall_portfolio)
+                # Calculate the overall delivery rate
+                # We divide the overall portfolio delivery by the overall offered volume to get the overall delivery rate
+                overall_delivery_rate = overall_portfolio_delivery / overall_offered_volume
 
-            # Calculate the overall delivery rate
-            # We divide the overall portfolio delivery by the overall offered volume to get the overall delivery rate
-            overall_delivery_rate = overall_portfolio_delivery / overall_offered_volume
+                results.append((year, std_dev_overall_portfolio, overall_portfolio_delivery, overall_delivery_rate, overall_offered_volume))
 
-            results.append((year, std_dev_overall_portfolio, overall_portfolio_delivery, overall_delivery_rate, overall_offered_volume))
-            
-    return results
+        return results
+
+    except ValueError as e:
+        logging.error(f"Invalid input: {e}")
+        logging.error(f"Yearly portfolio DataFrame: {yearly_portfolio_df.head()}")
+        logging.error(f"Project correlation matrix: {project_correlation_matrix}")
+        raise
+    except Exception as e:
+        logging.error(f"An unexpected error occurred: {e}")
+        logging.error(f"Yearly portfolio DataFrame: {yearly_portfolio_df.head()}")
+        logging.error(f"Project correlation matrix: {project_correlation_matrix}")
+        raise
