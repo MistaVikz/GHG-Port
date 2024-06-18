@@ -108,6 +108,22 @@ The Recovery Potential table should have a similar structure, with the same inve
 
 The project correlation matrix is constructed from manually assigned technology and country correlations, which can lead to issues with positive semi-definiteness. If the correlation matrix is not positive semi-definite, the simulation will fail. This is a known limitation of the current implementation, and users should be aware of this potential issue when using the tool.
 
+### GHG_Port Excel Tool
+
+The GHG_Port Excel tool is used to generate and analyze a portfolio of projects. The following steps outline how to use the tool:
+
+1. Add your projects to the Portfolio worksheet in the GHG_Port.xlsx file. This worksheet should contain the data for the projects you want to analyze.
+
+2. Click on the Generate Correlation Matrices button to create the correlation matrices for your projects. This button will check if the required worksheets and columns exist, and then create the technology and country correlation matrices using the data in the Portfolio worksheet. If any errors occur during this process, an error message will be displayed.
+
+3. Manually add the correlations between all technologies and countries in the correlation matrices. Alternatively, you can use the Generate Random Correlation Values button to generate random correlation values for testing purposes. This button will overwrite any existing correlation values with new random values.
+
+4. Click on the Generate Portfolio button to create the Portfolio Workbook. Before generating the portfolio, the program will check if the correlations are unique, valid, and if the correlation matrices are square. If any of these checks fail, an error message will be displayed and the portfolio will not be generated. If all checks pass, the program will generate the portfolio.
+
+5. Run GHG_Port.py to analyze the portfolio.
+
+Run the GHG_Port.py script to analyze the portfolio generated in the previous step. This script will perform the necessary calculations and analysis on the portfolio data. Make sure to run the script in the same directory as the GHG_Port.xlsx file.
+
 ### Output
 The project produces one Excel file as output: Portfolio_Simulation_Results.xlsx. This file is stored in a timestamped directory within the /output subdirectory. The directory is created at runtime and its name is in the format YYYYMMDD_HHMMSS, where YYYYMMDD is the date and HHMMSS is the time.
 
