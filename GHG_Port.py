@@ -23,12 +23,10 @@ def main(file_path: Path) -> None:
     try:
         # Load the Excel data
         portfolio_df, technology_correlation_matrix_df, country_correlation_matrix_df = load_excel_data(file_path)
-
-        # Build the yearly portfolio
         yearly_portfolio_df = create_yearly_portfolio(portfolio_df)
         if not validate_yearly_portfolio(yearly_portfolio_df):
             return
-        
+              
         # Build the project correlation matrix
         project_correlation_matrix = build_project_correlation_matrix(yearly_portfolio_df, technology_correlation_matrix_df, country_correlation_matrix_df)
         if not validate_project_correlation_matrix(project_correlation_matrix):
@@ -40,6 +38,8 @@ def main(file_path: Path) -> None:
         if not validate_simulation_results(results):
             return
         
+        print(results)
+
         # Create a timestamped directory in the /output sub directory
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         output_dir = Path('output') / timestamp

@@ -1,21 +1,22 @@
 import pandas as pd
 import numpy as np
 import logging
+from scipy.linalg import cholesky
 
 def create_yearly_portfolio(portfolio_df: pd.DataFrame) -> pd.DataFrame:
     """
-    Create a yearly portfolio DataFrame from the portfolio DataFrame.
+#    Create a yearly portfolio DataFrame from the portfolio DataFrame.
+#    
+#    This function melts the offered_volume_year_i columns into a single column,
+#    pivots the DataFrame to get the desired output, and reorders the columns
+#    so that similar columns are together.
     
-    This function melts the offered_volume_year_i columns into a single column,
-    pivots the DataFrame to get the desired output, and reorders the columns
-    so that similar columns are together.
+#    Parameters:
+#    portfolio_df (pd.DataFrame): The portfolio DataFrame.
     
-    Parameters:
-    portfolio_df (pd.DataFrame): The portfolio DataFrame.
-    
-    Returns:
-    pd.DataFrame: The yearly portfolio DataFrame.
-    """
+#    Returns:
+#    pd.DataFrame: The yearly portfolio DataFrame.
+#    """
     
     try:
         # Check if the input DataFrame is empty
@@ -143,6 +144,7 @@ def build_project_correlation_matrix(yearly_portfolio_df: pd.DataFrame, technolo
         # Convert the correlation matrix to a numpy array
         correlation_matrix_array = correlation_matrix.values
 
+        
         # Make the correlation matrix symmetric
         correlation_matrix_array = (correlation_matrix_array + correlation_matrix_array.T) / 2
 
@@ -181,6 +183,7 @@ def build_project_correlation_matrix(yearly_portfolio_df: pd.DataFrame, technolo
         logging.error(f"Technology correlation matrix DataFrame: {technology_correlation_matrix_df.head()}")
         logging.error(f"Country correlation matrix DataFrame: {country_correlation_matrix_df.head()}")
         raise
+
 
 def run_portfolio_simulation(yearly_portfolio_df: pd.DataFrame, project_correlation_matrix: list, num_simulations: int = 10000) -> list:
     try:
