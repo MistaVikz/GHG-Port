@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
 import logging
-from scipy.linalg import cholesky
 
 def create_yearly_portfolio(portfolio_df: pd.DataFrame) -> pd.DataFrame:
     """
